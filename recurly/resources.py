@@ -1501,6 +1501,8 @@ class Subscription(Resource):
         Account mini details
     activated_at : datetime
         Activated at
+    active_invoice_id : str
+        The invoice ID of the latest invoice created for an active subscription.
     add_ons : :obj:`list` of :obj:`SubscriptionAddOn`
         Add-ons
     add_ons_total : float
@@ -1594,6 +1596,7 @@ class Subscription(Resource):
     schema = {
         "account": "AccountMini",
         "activated_at": datetime,
+        "active_invoice_id": str,
         "add_ons": ["SubscriptionAddOn"],
         "add_ons_total": float,
         "auto_renew": bool,
@@ -1826,7 +1829,8 @@ class SubscriptionAddOn(Resource):
     percentage_tiers : :obj:`list` of :obj:`SubscriptionAddOnPercentageTier`
         If percentage tiers are provided in the request, all existing percentage tiers on the Subscription Add-on will be
         removed and replaced by the percentage tiers in the request. Use only if add_on.tier_type is tiered or volume and
-        add_on.usage_type is percentage
+        add_on.usage_type is percentage.
+        There must be one tier without an `ending_amount` value which represents the final tier.
     quantity : int
         Add-on quantity
     revenue_schedule_type : str
@@ -1841,7 +1845,8 @@ class SubscriptionAddOn(Resource):
     tiers : :obj:`list` of :obj:`SubscriptionAddOnTier`
         If tiers are provided in the request, all existing tiers on the Subscription Add-on will be
         removed and replaced by the tiers in the request. If add_on.tier_type is tiered or volume and
-        add_on.usage_type is percentage use percentage_tiers instead.
+        add_on.usage_type is percentage use percentage_tiers instead. 
+        There must be one tier without an `ending_quantity` value which represents the final tier.
     unit_amount : float
         Supports up to 2 decimal places.
     unit_amount_decimal : str
@@ -1850,6 +1855,8 @@ class SubscriptionAddOn(Resource):
         Updated at
     usage_percentage : float
         The percentage taken of the monetary amount of usage tracked. This can be up to 4 decimal places. A value between 0.0 and 100.0. Required if add_on_type is usage and usage_type is percentage.
+    usage_timeframe : str
+        The time at which usage totals are reset for billing purposes.
     """
 
     schema = {
@@ -1869,6 +1876,7 @@ class SubscriptionAddOn(Resource):
         "unit_amount_decimal": str,
         "updated_at": datetime,
         "usage_percentage": float,
+        "usage_timeframe": str,
     }
 
 
@@ -1920,7 +1928,7 @@ class SubscriptionAddOnTier(Resource):
     Attributes
     ----------
     ending_quantity : int
-        Ending quantity
+        Ending quantity for the tier.  This represents a unit amount for unit-priced add ons. Must be left empty if it is the final tier.
     unit_amount : float
         Allows up to 2 decimal places. Optionally, override the tiers' default unit amount. If add-on's `add_on_type` is `usage` and `usage_type` is `percentage`, cannot be provided.
     unit_amount_decimal : str
@@ -1944,11 +1952,10 @@ class SubscriptionAddOnPercentageTier(Resource):
     Attributes
     ----------
     ending_amount : float
-        Ending amount
+        Ending amount for the tier. Allows up to 2 decimal places. Must be left empty if it is the final tier.
     usage_percentage : str
         The percentage taken of the monetary amount of usage tracked.
-        This can be up to 4 decimal places represented as a string. A value between
-        0.0 and 100.0.
+        This can be up to 4 decimal places represented as a string.
     """
 
     schema = {"ending_amount": float, "usage_percentage": str}
@@ -2391,6 +2398,8 @@ class AddOn(Resource):
         Last updated at
     usage_percentage : float
         The percentage taken of the monetary amount of usage tracked. This can be up to 4 decimal places. A value between 0.0 and 100.0.
+    usage_timeframe : str
+        The time at which usage totals are reset for billing purposes.
     usage_type : str
         Type of usage, returns usage type if `add_on_type` is `usage`.
     """
@@ -2422,6 +2431,7 @@ class AddOn(Resource):
         "tiers": ["Tier"],
         "updated_at": datetime,
         "usage_percentage": float,
+        "usage_timeframe": str,
         "usage_type": str,
     }
 
@@ -2456,7 +2466,7 @@ class Tier(Resource):
     currencies : :obj:`list` of :obj:`TierPricing`
         Tier pricing
     ending_quantity : int
-        Ending quantity for the tier.  This represents a unit amount for unit-priced add ons.
+        Ending quantity for the tier.  This represents a unit amount for unit-priced add ons. Must be left empty if it is the final tier.
     usage_percentage : str
         (deprecated) -- Use the percentage_tiers object instead.
     """
@@ -2502,9 +2512,10 @@ class PercentageTier(Resource):
     Attributes
     ----------
     ending_amount : float
-        Ending amount for the tier. Allows up to 2 decimal places. The last tier ending_amount is null.
+        Ending amount for the tier. Allows up to 2 decimal places. Must be left empty if it is the final tier.
     usage_percentage : str
-        Decimal usage percentage.
+        The percentage taken of the monetary amount of usage tracked.
+        This can be up to 4 decimal places represented as a string.
     """
 
     schema = {"ending_amount": float, "usage_percentage": str}
