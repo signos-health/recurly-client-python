@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 import email
-from recurly import recurly_logging as logging
+from recurly_v2 import recurly_logging as logging
 import os
 from os.path import join, dirname
 import time
@@ -10,7 +10,7 @@ from defusedxml import ElementTree
 
 import mock
 import six
-import recurly
+import recurly_v2
 
 from six.moves import http_client
 
@@ -99,16 +99,16 @@ class MockRequestManager(object):
         self.response_context = mock.patch.object(http_client.HTTPConnection, 'getresponse', lambda self: response)
         self.response_mock = self.response_context.__enter__()
 
-        recurly.cache_rate_limit_headers(self.headers)
+        recurly_v2.cache_rate_limit_headers(self.headers)
 
         return self
 
     def assert_request(self):
         headers = dict(self.headers)
         if 'user-agent' in headers:
-            import recurly
-            headers['user-agent'] = headers['user-agent'].replace('{user-agent}', recurly.USER_AGENT)
-        headers['x-api-version'] = headers['x-api-version'].replace('{api-version}', recurly.API_VERSION)
+            import recurly_v2
+            headers['user-agent'] = headers['user-agent'].replace('{user-agent}', recurly_v2.USER_AGENT)
+        headers['x-api-version'] = headers['x-api-version'].replace('{api-version}', recurly_v2.API_VERSION)
         self.request_mock.assert_called_once_with(self.method, self.uri, self.body, headers)
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -141,18 +141,18 @@ class RecurlyTest(unittest.TestCase):
         time.sleep(secs)
 
     def setUp(self):
-        import recurly
+        import recurly_v2
 
         # Mock everything out unless we have an API key.
         try:
             api_key = os.environ['RECURLY_API_KEY']
         except KeyError:
             # Mock everything out.
-            recurly.API_KEY = 'apikey'
+            recurly_v2.API_KEY = 'apikey'
             self.test_id = 'mock'
         else:
-            recurly.API_KEY = api_key
-            recurly.CA_CERTS_FILE = os.environ.get('RECURLY_CA_CERTS_FILE')
+            recurly_v2.API_KEY = api_key
+            recurly_v2.CA_CERTS_FILE = os.environ.get('RECURLY_CA_CERTS_FILE')
             self.mock_request = self.noop_mock_request
             self.mock_sleep = self.noop_mock_sleep
             self.test_id = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -163,7 +163,7 @@ class RecurlyTest(unittest.TestCase):
         except KeyError:
             pass
         else:
-            recurly.BASE_URI = 'https://%s/v2/' % recurly_host
+            recurly_v2.BASE_URI = 'https://%s/v2/' % recurly_host
 
         logging.basicConfig(level=logging.INFO)
-        logging.getLogger('recurly').setLevel(logging.DEBUG)
+        logging.getLogger('recurly_v2').setLevel(logging.DEBUG)

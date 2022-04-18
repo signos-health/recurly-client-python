@@ -1,4 +1,4 @@
-from recurly import recurly_logging as logging
+from recurly_v2 import recurly_logging as logging
 import sys
 import re
 from datetime import datetime
@@ -8,9 +8,9 @@ from six import iteritems
 from defusedxml import ElementTree
 from xml.etree import ElementTree as ElementTreeBuilder
 
-import recurly
-from recurly.errors import *
-from recurly.resource import Resource, Money, PageError, Page
+import recurly_v2
+from recurly_v2.errors import *
+from recurly_v2.resource import Resource, Money, PageError, Page
 
 """
 
@@ -35,7 +35,7 @@ cached_rate_limits = {
 VALID_DOMAINS = ('.recurly.com',)
 """A tuple of whitelisted domains that this client can connect to."""
 
-USER_AGENT = 'recurly-python/%s; python %s; %s' % (recurly.__version__, recurly.__python_version__, recurly.resource.ssl.OPENSSL_VERSION)
+USER_AGENT = 'recurly-python/%s; python %s; %s' % (recurly_v2.__version__, recurly_v2.__python_version__, recurly_v2.resource.ssl.OPENSSL_VERSION)
 
 BASE_URI = 'https://%s.recurly.com/v2/'
 """The API endpoint to send requests to."""
@@ -78,7 +78,7 @@ def api_version():
 
 def cache_rate_limit_headers(resp_headers):
     try:
-        recurly.cached_rate_limits = {
+        recurly_v2.cached_rate_limits = {
                 'cached_at': datetime.utcnow(),
                 'limit': int(resp_headers['x-ratelimit-limit']),
                 'remaining': int(resp_headers['x-ratelimit-remaining']),
@@ -410,7 +410,7 @@ class Account(Resource):
         url = urljoin(self._url, '/shipping_addresses')
         return shipping_address.post(url)
 
-class BillingInfoFraudInfo(recurly.Resource):
+class BillingInfoFraudInfo(recurly_v2.Resource):
     node_name = 'fraud'
     attributes = (
         'score',
@@ -483,7 +483,7 @@ class BillingInfo(Resource):
     # Allows user to call verify() on billing_info object
     # References Account#verify
     def verify(self, account_code, gateway_code = None):
-      recurly.Account.get(account_code).verify(gateway_code)
+      recurly_v2.Account.get(account_code).verify(gateway_code)
 
 class ShippingAddress(Resource):
 
@@ -658,7 +658,7 @@ class GiftCard(Resource):
             url = self._url + '/preview'
             return self.post(url)
         else:
-            url = urljoin(recurly.base_uri(), self.collection_path + '/preview')
+            url = urljoin(recurly_v2.base_uri(), self.collection_path + '/preview')
             return self.post(url)
 
     def redeem(self, account_code):
@@ -669,7 +669,7 @@ class GiftCard(Resource):
         if hasattr(self, '_url'):
             url = urljoin(self._url, '/redeem')
         else:
-            url = urljoin(recurly.base_uri(), self.collection_path + '/' + redemption_path)
+            url = urljoin(recurly_v2.base_uri(), self.collection_path + '/' + redemption_path)
 
         recipient_account = _RecipientAccount(account_code=account_code)
         return self.post(url, recipient_account)
@@ -1265,7 +1265,7 @@ class Purchase(Resource):
         return self.__request_invoice(url, self)
 
     def __request_invoice(self, url, body=None):
-        url = urljoin(recurly.base_uri(), url)
+        url = urljoin(recurly_v2.base_uri(), url)
         response = self.http_request(url, 'POST', body)
         if response.status not in (200, 201):
             self.raise_http_error(response)
@@ -1384,7 +1384,7 @@ class Subscription(Resource):
             url = self._url + '/preview'
             return self.post(url)
         else:
-            url = urljoin(recurly.base_uri(), self.collection_path + '/preview')
+            url = urljoin(recurly_v2.base_uri(), self.collection_path + '/preview')
             return self.post(url)
 
     def update_notes(self, **kwargs):
@@ -1483,7 +1483,7 @@ class Subscription(Resource):
         url = urljoin(self._url, '/add_ons/%s/usage' % (sub_add_on.add_on_code,))
         return usage.post(url)
 
-class TransactionBillingInfo(recurly.Resource):
+class TransactionBillingInfo(recurly_v2.Resource):
     node_name = 'billing_info'
     attributes = (
         'first_name',
@@ -1505,7 +1505,7 @@ class TransactionBillingInfo(recurly.Resource):
     )
 
 
-class TransactionAccount(recurly.Resource):
+class TransactionAccount(recurly_v2.Resource):
     node_name = 'account'
     attributes = (
         'first_name',
@@ -1516,13 +1516,13 @@ class TransactionAccount(recurly.Resource):
     )
     _classes_for_nodename = {'billing_info': TransactionBillingInfo}
 
-class TransactionDetails(recurly.Resource):
+class TransactionDetails(recurly_v2.Resource):
     node_name = 'details'
     attributes = ('account')
     _classes_for_nodename = {'account': TransactionAccount}
 
 
-class TransactionError(recurly.Resource):
+class TransactionError(recurly_v2.Resource):
     node_name = 'transaction_error'
     attributes = (
         'id',
@@ -1533,7 +1533,7 @@ class TransactionError(recurly.Resource):
         'gateway_error_code',
     )
 
-class TransactionFraudInfo(recurly.Resource):
+class TransactionFraudInfo(recurly_v2.Resource):
     node_name = 'fraud'
     attributes = (
         'score',
@@ -1855,7 +1855,7 @@ class ExportDate(Resource):
         :param date: The date to fetch the export files for
         :return: A list of exported files for that given date or an empty list if not file exists for that date
         """
-        url = urljoin(recurly.base_uri() + self.collection_path, '/%s/export_files' % date)
+        url = urljoin(recurly_v2.base_uri() + self.collection_path, '/%s/export_files' % date)
         return ExportDateFile.paginated(url)
 
 

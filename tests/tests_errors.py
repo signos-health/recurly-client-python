@@ -1,19 +1,19 @@
-import recurly
-from recurly import Account, Transaction, ValidationError
-from recurly.errors import UnexpectedStatusError, UnexpectedClientError, UnexpectedServerError
+import recurly_v2
+from recurly_v2 import Account, Transaction, ValidationError
+from recurly_v2.errors import UnexpectedStatusError, UnexpectedClientError, UnexpectedServerError
 from recurlytests import RecurlyTest
 
 class RecurlyExceptionTests(RecurlyTest):
     def test_error_printable(self):
         """ Make sure __str__/__unicode__ works correctly in Python 2/3"""
-        str(recurly.UnauthorizedError('recurly.API_KEY not set'))
+        str(recurly_v2.UnauthorizedError('recurly.API_KEY not set'))
 
     def test_validationerror_printable(self):
         """ Make sure __str__/__unicode__ works correctly in Python 2/3"""
-        error = recurly.ValidationError.Suberror('field', 'symbol', 'message')
+        error = recurly_v2.ValidationError.Suberror('field', 'symbol', 'message')
         suberrors = dict()
         suberrors['field'] = error
-        validation_error = recurly.ValidationError('')
+        validation_error = recurly_v2.ValidationError('')
         validation_error.__dict__['errors'] = suberrors
         str(validation_error)
 

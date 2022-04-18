@@ -8,7 +8,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as README:
 VERSION_RE = re.compile("^__version__ = '(.+)'$",
                         flags=re.MULTILINE)
 with open(os.path.join(os.path.dirname(__file__),
-                       'recurly', '__init__.py')) as PACKAGE:
+                       'recurly_v2', '__init__.py')) as PACKAGE:
     VERSION = VERSION_RE.search(PACKAGE.read()).group(1)
 
 more_install_requires = list()
@@ -18,7 +18,7 @@ except ImportError:
     more_install_requires.append('ssl')
 
 setup(
-    name='recurly',
+    name='recurly_v2',
     version=VERSION,
     description="The official Recurly API client",
     long_description=DESCRIPTION,
@@ -35,7 +35,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: Internet :: WWW/HTTP',
     ],
-    packages=['recurly'],
+    packages=['recurly_v2'],
     install_requires=['iso8601<1.0.0', 'backports.ssl_match_hostname', 'six>=1.4.0', 'defusedxml'] + more_install_requires,
     tests_require=['mock',
                    'six',

@@ -1,7 +1,7 @@
 import base64
 import re
 from datetime import datetime
-from recurly import recurly_logging as logging
+from recurly_v2 import recurly_logging as logging
 import ssl
 from defusedxml import ElementTree
 from xml.etree import ElementTree as ElementTreeBuilder
@@ -9,9 +9,9 @@ from xml.etree import ElementTree as ElementTreeBuilder
 import iso8601
 import six
 
-import recurly
-import recurly.errors
-from recurly.link_header import parse_link_value
+import recurly_v2
+import recurly_v2.errors
+from recurly_v2.link_header import parse_link_value
 from six.moves import http_client
 from six.moves.urllib.parse import urlencode, urlsplit, quote, urlparse
 
@@ -34,7 +34,7 @@ class Money(object):
         elif args and len(args) > 1:
             raise ValueError("Multi-currency Money must be instantiated with codes")
         elif args:
-            self.currencies = { recurly.DEFAULT_CURRENCY: args[0] }
+            self.currencies = { recurly_v2.DEFAULT_CURRENCY: args[0] }
         else:
             self.currencies = dict()
 
@@ -212,7 +212,7 @@ class Resource(object):
         except ValueError:
             pass
         except AttributeError:
-            self.currency = recurly.DEFAULT_CURRENCY
+            self.currency = recurly_v2.DEFAULT_CURRENCY
 
         for key, value in six.iteritems(kwargs):
             if key not in ('collection_path', 'member_path', 'node_name', 'attributes'):
@@ -234,42 +234,42 @@ class Resource(object):
 
         """
 
-        if recurly.API_KEY is None:
-            raise recurly.UnauthorizedError('recurly.API_KEY not set')
+        if recurly_v2.API_KEY is None:
+            raise recurly_v2.UnauthorizedError('recurly.API_KEY not set')
 
         url_parts = urlparse(url)
-        if not any(url_parts.netloc.endswith(d) for d in recurly.VALID_DOMAINS):
+        if not any(url_parts.netloc.endswith(d) for d in recurly_v2.VALID_DOMAINS):
             # TODO Exception class used for clean backport, change to
             # ConfigurationError
             raise Exception('Only a recurly domain may be called')
 
         is_non_ascii = lambda s: any(ord(c) >= 128 for c in s)
 
-        if is_non_ascii(recurly.API_KEY) or is_non_ascii(recurly.SUBDOMAIN):
-            raise recurly.ConfigurationError("""Setting API_KEY or SUBDOMAIN to
+        if is_non_ascii(recurly_v2.API_KEY) or is_non_ascii(recurly_v2.SUBDOMAIN):
+            raise recurly_v2.ConfigurationError("""Setting API_KEY or SUBDOMAIN to
                     unicode strings may cause problems. Please use strings.
                     Issue described here:
                     https://gist.github.com/maximehardy/d3a0a6427d2b6791b3dc""")
 
         urlparts = urlsplit(url)
         connection_options = {}
-        if recurly.SOCKET_TIMEOUT_SECONDS:
-            connection_options['timeout'] = recurly.SOCKET_TIMEOUT_SECONDS
+        if recurly_v2.SOCKET_TIMEOUT_SECONDS:
+            connection_options['timeout'] = recurly_v2.SOCKET_TIMEOUT_SECONDS
         if urlparts.scheme != 'https':
             connection = http_client.HTTPConnection(urlparts.netloc, **connection_options)
-        elif recurly.CA_CERTS_FILE is None:
+        elif recurly_v2.CA_CERTS_FILE is None:
             connection = http_client.HTTPSConnection(urlparts.netloc, **connection_options)
         else:
-            connection_options['context'] = ssl.create_default_context(cafile=recurly.CA_CERTS_FILE)
+            connection_options['context'] = ssl.create_default_context(cafile=recurly_v2.CA_CERTS_FILE)
             connection = http_client.HTTPSConnection(urlparts.netloc, **connection_options)
 
         headers = {} if headers is None else dict(headers)
         headers.setdefault('accept', 'application/xml')
         headers.update({
-            'user-agent': recurly.USER_AGENT
+            'user-agent': recurly_v2.USER_AGENT
         })
-        headers['x-api-version'] = recurly.api_version()
-        headers['authorization'] = 'Basic %s' % base64.b64encode(six.b('%s:' % recurly.API_KEY)).decode()
+        headers['x-api-version'] = recurly_v2.api_version()
+        headers['authorization'] = 'Basic %s' % base64.b64encode(six.b('%s:' % recurly_v2.API_KEY)).decode()
 
         log = logging.getLogger('recurly.http.request')
         if log.isEnabledFor(logging.DEBUG):
@@ -301,7 +301,7 @@ class Resource(object):
             log.debug(resp_headers)
             log.debug('')
 
-        recurly.cache_rate_limit_headers(resp_headers)
+        recurly_v2.cache_rate_limit_headers(resp_headers)
 
         return resp
 
@@ -355,7 +355,7 @@ class Resource(object):
         if not uuid:
             raise ValueError("get must have a value passed as an argument")
         uuid = quote(str(uuid))
-        url = recurly.base_uri() + (cls.member_path % (uuid,))
+        url = recurly_v2.base_uri() + (cls.member_path % (uuid,))
         _resp, elem = cls.element_for_url(url)
         return cls.from_element(elem)
 
@@ -624,7 +624,7 @@ class Resource(object):
         parameters.
 
         """
-        url = recurly.base_uri() + cls.collection_path
+        url = recurly_v2.base_uri() + cls.collection_path
         if kwargs:
             url = '%s?%s' % (url, urlencode_params(kwargs))
         return Page.page_for_url(url)
@@ -634,7 +634,7 @@ class Resource(object):
         """Return a count of server side resources given
         filtering arguments in kwargs.
         """
-        url = recurly.base_uri() + cls.collection_path
+        url = recurly_v2.base_uri() + cls.collection_path
         if kwargs:
             url = '%s?%s' % (url, urlencode_params(kwargs))
         return Page.count_for_url(url)
@@ -656,7 +656,7 @@ class Resource(object):
         return self.put(self._url)
 
     def _create(self):
-        url = recurly.base_uri() + self.collection_path
+        url = recurly_v2.base_uri() + self.collection_path
         return self.post(url)
 
     def put(self, url):
@@ -697,7 +697,7 @@ class Resource(object):
         reaction to the given `http_client.HTTPResponse`."""
         response_xml = response.read()
         logging.getLogger('recurly.http.response').debug(response_xml)
-        exc_class = recurly.errors.error_class_for_http_status(response.status)
+        exc_class = recurly_v2.errors.error_class_for_http_status(response.status)
         raise exc_class(response_xml)
 
     def to_element(self, root_name=None):

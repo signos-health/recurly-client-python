@@ -5,38 +5,38 @@ import six
 from six import StringIO
 from six.moves.urllib.parse import urljoin
 
-import recurly
-from recurly import Account, AddOn, Address, Adjustment, BillingInfo, Coupon, Item, Plan, Redemption, Subscription, \
+import recurly_v2
+from recurly_v2 import Account, AddOn, Address, Adjustment, BillingInfo, Coupon, Item, Plan, Redemption, Subscription, \
     SubscriptionAddOn, Transaction, MeasuredUnit, Usage, GiftCard, Delivery, ShippingAddress, AccountAcquisition, \
     Purchase, Invoice, InvoiceCollection, CreditPayment, CustomField, ExportDate, ExportDateFile, DunningCampaign, \
     DunningCycle, InvoiceTemplate
-from recurly import Money, NotFoundError, ValidationError, BadRequestError, PageError
-from recurly import recurly_logging as logging
+from recurly_v2 import Money, NotFoundError, ValidationError, BadRequestError, PageError
+from recurly_v2 import recurly_logging as logging
 from recurlytests import RecurlyTest
 
-recurly.SUBDOMAIN = 'api'
+recurly_v2.SUBDOMAIN = 'api'
 
 
 class TestResources(RecurlyTest):
 
     def test_authentication(self):
-        recurly.API_KEY = None
+        recurly_v2.API_KEY = None
 
         account_code = 'test%s' % self.test_id
         try:
             Account.get(account_code)
-        except recurly.UnauthorizedError as exc:
+        except recurly_v2.UnauthorizedError as exc:
             pass
         else:
             self.fail("Updating account with invalid email address did not raise a ValidationError")
 
     def test_config_string_types(self):
-        recurly.API_KEY = six.u('\xe4 unicode string')
+        recurly_v2.API_KEY = six.u('\xe4 unicode string')
 
         account_code = 'test%s' % self.test_id
         try:
             Account.get(account_code)
-        except recurly.ConfigurationError as exc:
+        except recurly_v2.ConfigurationError as exc:
             pass
         else:
             self.fail("Updating account with invalid email address did not raise a ValidationError")
@@ -46,10 +46,10 @@ class TestResources(RecurlyTest):
         with self.mock_request('account/exists-with-rate-limit-headers.xml'):
             account = Account.get(account_code)
 
-        self.assertEqual(recurly.cached_rate_limits['limit'], 2000)
-        self.assertEqual(recurly.cached_rate_limits['remaining'], 1992)
-        self.assertEqual(recurly.cached_rate_limits['resets_at'], datetime(2017, 2, 2, 19, 46))
-        self.assertIsInstance(recurly.cached_rate_limits['cached_at'], datetime)
+        self.assertEqual(recurly_v2.cached_rate_limits['limit'], 2000)
+        self.assertEqual(recurly_v2.cached_rate_limits['remaining'], 1992)
+        self.assertEqual(recurly_v2.cached_rate_limits['resets_at'], datetime(2017, 2, 2, 19, 46))
+        self.assertIsInstance(recurly_v2.cached_rate_limits['cached_at'], datetime)
 
     def test_credit_payment(self):
         with self.mock_request('credit-payment/show.xml'):
@@ -94,12 +94,12 @@ class TestResources(RecurlyTest):
                     )
                 ),
                 subscriptions = [
-                    recurly.Subscription(plan_code = 'gold')
+                    recurly_v2.Subscription(plan_code = 'gold')
                 ],
                 adjustments = [
-                    recurly.Adjustment(unit_amount_in_cents=1000, description='Item 1',
+                    recurly_v2.Adjustment(unit_amount_in_cents=1000, description='Item 1',
                                     quantity=1),
-                    recurly.Adjustment(unit_amount_in_cents=2000, description='Item 2',
+                    recurly_v2.Adjustment(unit_amount_in_cents=2000, description='Item 2',
                                     quantity=2),
                 ]
             )
@@ -165,7 +165,7 @@ class TestResources(RecurlyTest):
         account.preferred_locale = 'en-US'
         with self.mock_request('account/created.xml'):
             account.save()
-        self.assertEqual(account._url, urljoin(recurly.base_uri(), 'accounts/%s' % account_code))
+        self.assertEqual(account._url, urljoin(recurly_v2.base_uri(), 'accounts/%s' % account_code))
         self.assertEqual(account.vat_number, '444444-UK')
         self.assertEqual(account.vat_location_enabled, True)
         self.assertEqual(account.cc_emails,
@@ -184,7 +184,7 @@ class TestResources(RecurlyTest):
         self.assertEqual(same_account.account_code, account_code)
         self.assertTrue(same_account.first_name is None)
         self.assertTrue(same_account.entity_use_code == 'I')
-        self.assertEqual(same_account._url, urljoin(recurly.base_uri(), 'accounts/%s' % account_code))
+        self.assertEqual(same_account._url, urljoin(recurly_v2.base_uri(), 'accounts/%s' % account_code))
 
         with self.mock_request('account-balance/exists.xml'):
             account_balance = same_account.account_balance()
@@ -251,7 +251,7 @@ class TestResources(RecurlyTest):
         with self.mock_request('account/numeric-created.xml'):
             account.save()
         try:
-            self.assertEqual(account._url, urljoin(recurly.base_uri(), 'accounts/%d' % numeric_test_id))
+            self.assertEqual(account._url, urljoin(recurly_v2.base_uri(), 'accounts/%d' % numeric_test_id))
         finally:
             with self.mock_request('account/numeric-deleted.xml'):
                 account.delete()
@@ -513,12 +513,12 @@ class TestResources(RecurlyTest):
                 name = 'Mock Add-On',
                 tier_type = "tiered",
                 tiers = [
-                    recurly.Tier(
+                    recurly_v2.Tier(
                         ending_quantity = 2000,
-                        unit_amount_in_cents = recurly.Money(USD=1000)
+                        unit_amount_in_cents = recurly_v2.Money(USD=1000)
                     ),
-                    recurly.Tier(
-                        unit_amount_in_cents = recurly.Money(USD=800)
+                    recurly_v2.Tier(
+                        unit_amount_in_cents = recurly_v2.Money(USD=800)
                     )
                 ]
             )
@@ -1226,7 +1226,7 @@ class TestResources(RecurlyTest):
         self.assertIsInstance(invoice, Invoice)
 
         with self.mock_request('invoice/update-invoice.xml'):
-            invoice.address = recurly.Address(
+            invoice.address = recurly_v2.Address(
                 first_name = 'Harry',
                 last_name = 'Potter',
                 company = 'Hogwarts',
@@ -1436,12 +1436,12 @@ class TestResources(RecurlyTest):
             with self.mock_request('subscription/error-subscribe-embedded-account.xml'):
                 account.save()
             self.fail("Failed subscription did not raise a Validation error")
-        except recurly.ValidationError as err:
+        except recurly_v2.ValidationError as err:
             # Check to see that we have a list of suberrors when there is more
             # than one error on a field
             sub_errs = err.errors['subscription.account.account_code']
             self.assertEqual(len(sub_errs), 2)
-            self.assertEqual(type(sub_errs[1]), recurly.errors.ValidationError.Suberror)
+            self.assertEqual(type(sub_errs[1]), recurly_v2.errors.ValidationError.Suberror)
             self.assertEqual(str(err), "blank: subscription.account.account_code can't be blank; invalid: subscription.account.account_code is invalid; empty: subscription.account.billing_info.address1 can't be empty; empty: subscription.account.billing_info.city can't be empty; empty: subscription.account.billing_info.country can't be empty; blank: subscription.account.billing_info.first_name can't be blank; blank: subscription.account.billing_info.last_name can't be blank; required: subscription.account.billing_info.number is required; empty: subscription.account.billing_info.zip can't be empty; invalid: subscription.plan_code is invalid; not_a_number: subscription.unit_amount_in_cents is not a number")
         except e:
             self.fail("Failed subscription did not raise a Validation error")
@@ -1664,7 +1664,7 @@ class TestResources(RecurlyTest):
             self.assertEqual(sub.tax_type, 'usst')
 
             with self.mock_request('subscription/redemptions.xml'):
-                self.assertEqual(type(sub.redemptions()), recurly.resource.Page)
+                self.assertEqual(type(sub.redemptions()), recurly_v2.resource.Page)
 
     def test_measured_unit(self):
         with self.mock_request('measured-units/exists.xml'):
@@ -1728,7 +1728,7 @@ class TestResources(RecurlyTest):
             with self.mock_request('usage/index.xml'):
                 usages = add_on.usage()
 
-                self.assertEquals(type(usages), recurly.resource.Page)
+                self.assertEquals(type(usages), recurly_v2.resource.Page)
                 self.assertEquals(len(usages), 1)
 
                 for usage in usages:
@@ -1778,12 +1778,12 @@ class TestResources(RecurlyTest):
               tier_type = "tiered",
               display_quantity_on_hosted_page = "true",
               tiers = [
-                recurly.Tier(
+                recurly_v2.Tier(
                   ending_quantity = 2000,
-                  unit_amount_in_cents = recurly.Money(USD=1000)
+                  unit_amount_in_cents = recurly_v2.Money(USD=1000)
                 ),
-                recurly.Tier(
-                  unit_amount_in_cents = recurly.Money(USD=800)
+                recurly_v2.Tier(
+                  unit_amount_in_cents = recurly_v2.Money(USD=800)
                 )
               ]
             )
@@ -2163,7 +2163,7 @@ class TestResources(RecurlyTest):
 
     def _build_gift_card(self):
         account_code = 'e0004e3c-216c-4254-8767-9be605cd0b03'
-        account = recurly.Account(account_code=account_code)
+        account = recurly_v2.Account(account_code=account_code)
         account.email = 'verena@example.com'
         account.first_name = 'Verena'
         account.last_name = 'Example'
